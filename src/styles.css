@@ -136,14 +136,31 @@ table.grid-table tr.section-row td { background: #f0f3f8; font-weight: 700; }
 table.grid-table td.num input { text-align: right; }
 .scroll-x { overflow-x: auto; }
 
-/* ---------------- A4 preview ---------------- */
+/* ================================================================
+   견적서 문서 디자인
+   구성(시트·행·열)은 그대로 두고 서식만 정리한다.
+   - 하나의 남색 계열로 통일, 굵은 검정 테두리 대신 가는 실선
+   - 금액은 tabular-nums 로 자릿수 정렬
+   - 컬러 없이 흑백 출력해도 위계가 살아남도록 명도 차를 둔다
+   ================================================================ */
 
 .page-wrap { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
 .a4-page {
-  width: 210mm; min-height: 297mm; background: #fff; padding: 14mm 12mm;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3); position: relative;
-  font-family: var(--font); color: #000; flex: none;
+  --ink: #16233a;
+  --ink-soft: #5b6b82;
+  --navy: #1b3a5f;
+  --navy-deep: #12293f;
+  --tint-1: #f4f7fb;
+  --tint-2: #e6edf5;
+  --tint-3: #d3e0ee;
+  --rule: #a9bacd;
+  --rule-soft: #dde5ee;
+
+  width: 210mm; min-height: 297mm; background: #fff;
+  padding: 15mm 14mm 16mm; position: relative; flex: none;
+  color: var(--ink); font-family: var(--font);
+  font-feature-settings: 'tnum' 1;
 }
 .a4-page.dim { opacity: 0.35; }
 
@@ -151,68 +168,175 @@ table.grid-table td.num input { text-align: right; }
 body.exporting .page-badge { display: none; }
 body.exporting .a4-page.dim { opacity: 1; }
 body.exporting .a4-page { box-shadow: none; }
+.a4-page { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3); }
 
 .page-badge {
   position: absolute; top: -11px; left: 0; background: #16233a; color: #fff;
   font-size: 11px; padding: 2px 10px; border-radius: 4px 4px 0 0; font-weight: 700;
 }
 .page-foot {
-  position: absolute; bottom: 8mm; left: 0; right: 0; text-align: center;
-  font-size: 9pt; color: #666;
+  position: absolute; bottom: 9mm; left: 14mm; right: 14mm;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 8pt; color: var(--ink-soft);
+  border-top: 1px solid var(--rule-soft); padding-top: 2.5mm;
 }
 
-/* 갑지 */
-.cover-title {
-  border: 2px solid #000; text-align: center; font-size: 26pt; font-weight: 700;
-  letter-spacing: 12px; padding: 10px 0; margin-bottom: 18px;
+/* ---------------- 갑지 머리 ---------------- */
+
+.doc-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  border-bottom: 2.5px solid var(--navy); padding-bottom: 4.5mm; margin-bottom: 6mm;
 }
-.cover-meta { display: flex; gap: 16px; margin-bottom: 16px; }
-.cover-meta > div { flex: 1; }
-.cover-meta p { margin: 0 0 5px; font-size: 10.5pt; font-weight: 700; line-height: 1.45; }
-.cover-meta .supplier p { font-size: 10pt; }
-.cover-sum {
-  font-size: 12pt; font-weight: 700; border-bottom: 2px solid #000;
-  padding-bottom: 6px; margin: 10px 0 0;
+.doc-title { line-height: 1; }
+.doc-title .ko {
+  font-size: 30pt; font-weight: 800; letter-spacing: 16px;
+  color: var(--navy); display: block; padding-left: 8px;
 }
-table.cover-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt; }
-table.cover-table th, table.cover-table td { border: 1px solid #000; padding: 5px 6px; height: 26px; }
-table.cover-table th { text-align: center; font-weight: 700; background: #fff; }
+.doc-title .en {
+  font-size: 7.5pt; letter-spacing: 5px; color: var(--ink-soft);
+  display: block; margin-top: 3mm; padding-left: 10px;
+}
+.doc-head .issued { text-align: right; font-size: 9pt; color: var(--ink-soft); line-height: 1.7; }
+.doc-head .issued b { color: var(--ink); font-weight: 700; }
+
+/* ---------------- 갑지 수신 / 공급자 ---------------- */
+
+.cover-meta {
+  display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 7mm; margin-bottom: 5.5mm;
+}
+.meta-block .cap {
+  font-size: 8pt; letter-spacing: 4px; color: var(--navy); font-weight: 700;
+  border-bottom: 1px solid var(--rule); padding-bottom: 1.5mm; margin-bottom: 3mm;
+}
+.meta-row { display: flex; font-size: 10pt; line-height: 1.95; }
+.meta-row .k {
+  flex: none; width: 19mm; color: var(--ink-soft); font-weight: 600; letter-spacing: 1.5px;
+}
+.meta-row .v { font-weight: 700; flex: 1; word-break: keep-all; overflow-wrap: anywhere; }
+
+.supplier-block {
+  border: 1px solid var(--rule-soft); border-left: 3px solid var(--navy);
+  background: var(--tint-1); padding: 4mm 5mm;
+}
+.supplier-block .cap { border-bottom-color: var(--rule-soft); }
+.supplier-name {
+  font-size: 14pt; font-weight: 800; color: var(--navy);
+  letter-spacing: 1px; margin-bottom: 1mm;
+}
+.supplier-addr { font-size: 8.5pt; color: var(--ink-soft); margin-bottom: 3mm; }
+.supplier-block .meta-row { font-size: 8.5pt; line-height: 1.8; }
+.supplier-block .meta-row .k { width: 24mm; letter-spacing: 0.5px; }
+.seal { color: var(--rule); font-weight: 700; margin-left: 4px; }
+
+/* ---------------- 합계금액 띠 ---------------- */
+
+.amount-band {
+  display: flex; align-items: center; gap: 6mm;
+  background: var(--navy); color: #fff; padding: 4mm 6mm; margin-bottom: 5mm;
+}
+.amount-band .label {
+  font-size: 8.5pt; letter-spacing: 4px; opacity: 0.8; flex: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.3); padding-right: 6mm;
+}
+.amount-band .hangul { font-size: 12pt; font-weight: 700; flex: 1; letter-spacing: 0.5px; }
+.amount-band .num { font-size: 15pt; font-weight: 800; flex: none; letter-spacing: 0.5px; }
+
+/* ---------------- 갑지 표 ---------------- */
+
+table.cover-table {
+  width: 100%; border-collapse: collapse; font-size: 9.5pt;
+  border: 1px solid var(--rule);
+}
+table.cover-table thead th {
+  background: var(--navy); color: #fff; font-weight: 700;
+  letter-spacing: 3px; font-size: 9pt; padding: 2.8mm 2mm;
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+}
+table.cover-table thead th:last-child { border-right: 0; }
+table.cover-table td {
+  border: 1px solid var(--rule-soft); padding: 2mm 3mm; height: 7.9mm;
+}
 table.cover-table td.c { text-align: center; }
-table.cover-table td.r { text-align: right; }
-table.cover-table tr.total td { font-weight: 700; border-top: 2px solid #000; }
-.cover-remarks { margin-top: 18px; font-size: 10.5pt; font-weight: 700; line-height: 1.7; }
+table.cover-table td.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.cover-table tbody tr.item td.name { font-weight: 600; }
+table.cover-table tr.sub td {
+  background: var(--tint-2); font-weight: 700; border-top: 1.5px solid var(--navy);
+}
+table.cover-table tr.vat td { background: var(--tint-1); }
+table.cover-table tr.grand-total td {
+  background: var(--tint-3); font-weight: 800; font-size: 11pt;
+  border-top: 1px solid var(--rule); height: 9mm; color: var(--navy-deep);
+}
 
-/* 상세내역 / 매출이익 */
-.detail-title {
-  border: 2px solid #000; text-align: center; font-size: 15pt; font-weight: 700;
-  padding: 10px 0; margin-bottom: 10px;
+/* ---------------- 갑지 특기사항 ---------------- */
+
+.cover-remarks { margin-top: 6mm; }
+.cover-remarks .cap {
+  font-size: 8pt; letter-spacing: 4px; color: var(--navy); font-weight: 700;
+  border-bottom: 1px solid var(--rule); padding-bottom: 1.5mm; margin-bottom: 2.5mm;
 }
-table.detail-table { width: 100%; border-collapse: collapse; font-size: 7.6pt; table-layout: fixed; }
+.cover-remarks div.line {
+  font-size: 9.5pt; color: var(--ink); line-height: 1.85; padding-left: 1mm;
+}
+
+/* ---------------- 상세내역 / 매출이익 머리 ---------------- */
+
+.sheet-head {
+  display: flex; align-items: center; gap: 4mm;
+  background: var(--navy); color: #fff; padding: 3.2mm 5mm; margin-bottom: 3.5mm;
+}
+.sheet-head .title { font-size: 13pt; font-weight: 800; letter-spacing: 3px; flex: 1; }
+.sheet-head .page-no { font-size: 8.5pt; opacity: 0.8; letter-spacing: 1px; }
+.sheet-head .chip {
+  font-size: 7.5pt; font-weight: 700; letter-spacing: 2px;
+  background: #a8402c; color: #fff; padding: 1mm 2.5mm;
+}
+.sheet-sub {
+  display: flex; justify-content: space-between; font-size: 8pt;
+  color: var(--ink-soft); margin-bottom: 2.5mm;
+}
+
+/* ---------------- 상세내역 / 매출이익 표 ---------------- */
+
+table.detail-table {
+  width: 100%; border-collapse: collapse; font-size: 7.6pt; table-layout: fixed;
+  border: 1px solid var(--rule);
+}
 table.detail-table th, table.detail-table td {
-  border: 1px solid #000; padding: 2px 3px; word-break: break-word; height: 20px;
+  border: 1px solid var(--rule-soft); padding: 1.5mm 1.2mm;
+  word-break: break-word; height: 7mm; overflow: hidden;
 }
+table.detail-table thead th {
+  background: var(--tint-2); color: var(--navy-deep); text-align: center;
+  font-weight: 700; border-color: var(--rule); word-break: keep-all; white-space: nowrap;
+}
+table.detail-table td.c { text-align: center; }
+/* 금액 칸은 좌우 여백을 줄여 자릿수가 잘리지 않게 한다 */
+table.detail-table td.r { text-align: right; padding-left: 0.5mm; padding-right: 1mm; }
+table.detail-table tr.sec td, table.detail-table tr.grand td { padding-right: 1mm; }
 table.detail-table td.r, table.detail-table tr.sec td, table.detail-table tr.grand td {
-  white-space: nowrap;
+  white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 table.detail-table td.note {
-  text-align: right; white-space: normal; word-break: break-word; font-size: 7pt;
+  text-align: right; white-space: normal; word-break: keep-all; overflow-wrap: anywhere;
+  font-size: 7pt; color: var(--ink-soft);
 }
+table.detail-table td.c { word-break: keep-all; overflow-wrap: anywhere; }
+table.detail-table tr.sec td {
+  background: var(--tint-1); font-weight: 700; text-align: right; color: var(--navy-deep);
+  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+}
+table.detail-table tr.sec td.title { text-align: left; letter-spacing: 1px; }
+table.detail-table tr.grand td {
+  background: var(--tint-3); font-weight: 800; text-align: right; height: 9mm;
+  border-top: 1.5px solid var(--navy); color: var(--navy-deep);
+}
+table.detail-table tr.grand td.title { text-align: center; letter-spacing: 3px; }
+table.detail-table tr.fee td { background: #fbfcfe; }
+
 /* 매출이익은 열이 14개라 더 촘촘하게. 숫자가 잘리지 않도록 폭·자간을 줄인다. */
 table.detail-table.profit { font-size: 6.6pt; }
-table.detail-table.profit td, table.detail-table.profit th { padding: 2px 2px; }
-table.detail-table td, table.detail-table th { overflow: hidden; }
-table.detail-table td.r, table.detail-table tr.sec td, table.detail-table tr.grand td {
-  font-variant-numeric: tabular-nums;
-}
-table.detail-table thead th { background: #ccffcc; text-align: center; font-weight: 600; }
-table.detail-table td.c { text-align: center; }
-table.detail-table td.r { text-align: right; }
-table.detail-table tr.sec td { background: #f2f2f2; font-weight: 700; text-align: right; }
-table.detail-table tr.sec td.title { text-align: left; }
-table.detail-table tr.grand td { background: #93cddd; font-weight: 700; text-align: right; height: 30px; }
-table.detail-table tr.grand td.title { text-align: center; }
-table.detail-table.profit tr.grand td { background: #b7dee8; }
-table.detail-table tr.fee td { background: #fafafa; }
+table.detail-table.profit td, table.detail-table.profit th { padding: 1.4mm 0.8mm; }
 
 /* ---------------- page selector ---------------- */
 

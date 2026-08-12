@@ -8,12 +8,14 @@ const ACCT = '_ * #,##0_ ;_ * \\-#,##0_ ;_ * "-"_ ;_ @_ '
 const COVER_MONEY = '#,##0_);[Red]\\(#,##0\\)'
 const PCT = '0%'
 
+/** 미리보기(PDF)와 같은 남색 계열 팔레트 — 셀 구성·수식은 그대로 두고 서식만 맞춘다 */
 const C = {
-  headerGreen: 'FFCCFFCC',
-  headerWhite: 'FFFFFFFF',
-  section: 'FFF2F2F2',
-  totalDetail: 'FF93CDDD',
-  totalProfit: 'FFB7DEE8',
+  navy: 'FF1B3A5F',
+  navyDeep: 'FF12293F',
+  tint1: 'FFF4F7FB',
+  tint2: 'FFE6EDF5',
+  tint3: 'FFD3E0EE',
+  white: 'FFFFFFFF',
 }
 
 type BStyle = 'thin' | 'medium' | 'double' | 'hair'
@@ -124,7 +126,7 @@ function buildCoverSheet(
   })
   boxRange(ws, 1, 1, 2, 7, 'medium', 'medium')
   set(ws, 'A1', '견   적   서', {
-    font: { size: 22, bold: true },
+    font: { size: 22, bold: true, color: { argb: C.navy } },
     align: { horizontal: 'center', vertical: 'middle' },
     border: { l: 'medium', r: 'medium', t: 'medium', b: 'medium' },
   })
@@ -167,10 +169,16 @@ function buildCoverSheet(
   // 합계금액 (한글) — 엑셀 전용 NUMBERSTRING 대신 계산된 문자열을 기록
   ws.mergeCells('A14:G14')
   set(ws, 'A14', hangulAmountLine(cover.total), {
-    font: { size: 11, bold: true },
+    font: { size: 11, bold: true, color: { argb: C.white } },
     align: { horizontal: 'left', vertical: 'middle' },
     border: { b: 'medium' },
+    fill: C.navy,
   })
+  for (let c = 1; c <= 7; c++) {
+    const cell = ws.getCell(14, c)
+    cell.fill = fill(C.navy)
+    cell.border = border({ b: 'medium' })
+  }
 
   // 표 머리
   const heads: [string, string][] = [
@@ -184,9 +192,9 @@ function buildCoverSheet(
   ws.mergeCells('B15:C15')
   for (const [addr, text] of heads) {
     set(ws, addr, text, {
-      font: { size: 11, bold: true },
+      font: { size: 11, bold: true, color: { argb: C.white } },
       align: { horizontal: 'center', vertical: 'middle' },
-      fill: C.headerWhite,
+      fill: C.navy,
     })
   }
   for (let c = 1; c <= 7; c++) {
@@ -251,21 +259,24 @@ function buildCoverSheet(
   // 합계
   const tr = COVER_TOTAL_ROW
   ws.mergeCells(`B${tr}:F${tr}`)
-  set(ws, `A${tr}`, null, { border: { l: 'medium', r: 'thin', b: 'medium' } })
+  set(ws, `A${tr}`, null, { border: { l: 'medium', r: 'thin', b: 'medium' }, fill: C.tint3 })
   set(ws, `B${tr}`, '합       계 (VAT 별도)', {
-    font: { size: 11, bold: true },
+    font: { size: 11, bold: true, color: { argb: C.navyDeep } },
     align: { horizontal: 'center', vertical: 'middle' },
     border: { l: 'thin', r: 'thin', b: 'medium' },
+    fill: C.tint3,
   })
+  for (let c = 2; c <= 6; c++) ws.getCell(tr, c).fill = fill(C.tint3)
   set(
     ws,
     `G${tr}`,
     { formula: `ROUNDDOWN(SUM(G${COVER_FIRST}:G${COVER_BLANK_END}),${std.rates.roundDownDigits})`, result: cover.total },
     {
-      font: { size: 11, bold: true },
+      font: { size: 11, bold: true, color: { argb: C.navyDeep } },
       numFmt: COVER_MONEY,
       align: { vertical: 'middle' },
       border: { l: 'thin', r: 'medium', b: 'medium' },
+      fill: C.tint3,
     },
   )
 
@@ -321,23 +332,27 @@ function detailHeader(ws: ExcelJS.Worksheet, title: string, lastCol: number, wit
       ]
     : [['L', '비고']]
 
+  const headFont = { bold: true, color: { argb: C.white } }
   for (const [col, text] of [...single, ...tail]) {
     ws.mergeCells(`${col}${h}:${col}${h + 1}`)
     set(ws, `${col}${h}`, text, {
+      font: headFont,
       align: { horizontal: 'center', vertical: 'middle' },
-      fill: C.headerGreen,
+      fill: C.navy,
     })
   }
   for (const [c1, c2, text] of pairs) {
     ws.mergeCells(`${c1}${h}:${c2}${h}`)
-    set(ws, `${c1}${h}`, text, { align: { horizontal: 'center', vertical: 'middle' }, fill: C.headerGreen })
-    set(ws, `${c1}${h + 1}`, '단가', { align: { horizontal: 'center', vertical: 'middle' }, fill: C.headerGreen })
-    set(ws, `${c2}${h + 1}`, '소계', { align: { horizontal: 'center', vertical: 'middle' }, fill: C.headerGreen })
+    const o = { font: headFont, align: { horizontal: 'center' as const, vertical: 'middle' as const }, fill: C.navy }
+    set(ws, `${c1}${h}`, text, o)
+    set(ws, `${c1}${h + 1}`, '단가', o)
+    set(ws, `${c2}${h + 1}`, '소계', o)
   }
   for (let r = h; r <= h + 1; r++) {
     for (let c = 1; c <= lastCol; c++) {
       const cell = ws.getCell(r, c)
-      cell.fill = fill(C.headerGreen)
+      cell.fill = fill(C.navy)
+      if (!cell.value) cell.font = { name: FONT, size: 9, bold: true, color: { argb: C.white } }
       cell.border = border({
         l: c === 1 ? 'medium' : 'thin',
         r: c === lastCol ? 'medium' : 'thin',
@@ -388,13 +403,13 @@ function buildDetailSheet(wb: ExcelJS.Workbook, sections: Section[], withProfit:
     set(ws, `A${hr}`, sec.title, {
       font: { size: 10, bold: true },
       align: { horizontal: 'left', vertical: 'middle' },
-      fill: C.section,
+      fill: C.tint1,
       border: { l: 'medium', r: 'thin', t: 'thin', b: 'thin' },
     })
     for (let c = 2; c <= lastCol; c++) {
       const cell = ws.getCell(hr, c)
       cell.font = { name: FONT, size: 10, bold: true }
-      cell.fill = fill(C.section)
+      cell.fill = fill(C.tint1)
       cell.alignment = { horizontal: 'right', vertical: 'middle' }
       cell.border = border({ l: 'thin', r: c === lastCol ? 'medium' : 'thin', t: 'thin', b: 'thin' })
     }
@@ -414,18 +429,18 @@ function buildDetailSheet(wb: ExcelJS.Workbook, sections: Section[], withProfit:
     )
     const secTotal = st.m + st.l + st.e
     if (has) {
-      money(hr, 'F', { formula: `SUM(${rng('F')})`, result: st.m }, { font: { size: 10, bold: true }, fill: C.section })
-      money(hr, 'H', { formula: `SUM(${rng('H')})`, result: st.l }, { font: { size: 10, bold: true }, fill: C.section })
-      money(hr, 'J', { formula: `SUM(${rng('J')})`, result: st.e }, { font: { size: 10, bold: true }, fill: C.section })
-      money(hr, 'K', { formula: `F${hr}+H${hr}+J${hr}`, result: secTotal }, { font: { size: 10, bold: true }, fill: C.section })
+      money(hr, 'F', { formula: `SUM(${rng('F')})`, result: st.m }, { font: { size: 10, bold: true }, fill: C.tint1 })
+      money(hr, 'H', { formula: `SUM(${rng('H')})`, result: st.l }, { font: { size: 10, bold: true }, fill: C.tint1 })
+      money(hr, 'J', { formula: `SUM(${rng('J')})`, result: st.e }, { font: { size: 10, bold: true }, fill: C.tint1 })
+      money(hr, 'K', { formula: `F${hr}+H${hr}+J${hr}`, result: secTotal }, { font: { size: 10, bold: true }, fill: C.tint1 })
       if (withProfit) {
-        money(hr, 'L', { formula: `SUM(${rng('L')})`, result: st.c }, { font: { size: 10, bold: true }, fill: C.section })
-        money(hr, 'M', { formula: `K${hr}-L${hr}`, result: secTotal - st.c }, { font: { size: 10, bold: true }, fill: C.section })
+        money(hr, 'L', { formula: `SUM(${rng('L')})`, result: st.c }, { font: { size: 10, bold: true }, fill: C.tint1 })
+        money(hr, 'M', { formula: `K${hr}-L${hr}`, result: secTotal - st.c }, { font: { size: 10, bold: true }, fill: C.tint1 })
         set(ws, `N${hr}`, { formula: `IFERROR(M${hr}/K${hr},0)`, result: secTotal ? (secTotal - st.c) / secTotal : 0 }, {
           font: { size: 10, bold: true },
           numFmt: PCT,
           align: { horizontal: 'center', vertical: 'middle' },
-          fill: C.section,
+          fill: C.tint1,
           border: { l: 'thin', r: 'medium', t: 'thin', b: 'thin' },
         })
       }
@@ -509,25 +524,25 @@ function writeDetailTotal(
 
   ws.mergeCells(`A${tr}:D${tr}`)
   set(ws, `A${tr}`, '총 합계', {
-    font: { size: 12, bold: true },
+    font: { size: 12, bold: true, color: { argb: C.navyDeep } },
     align: { horizontal: 'center', vertical: 'middle' },
-    fill: withProfit ? C.totalProfit : C.totalDetail,
+    fill: withProfit ? C.tint3 : C.tint3,
     border: { l: 'medium', r: 'thin', t: 'thin', b: 'medium' },
   })
   for (let c = 2; c <= lastCol; c++) {
     const cell = ws.getCell(tr, c)
-    cell.fill = fill(withProfit ? C.totalProfit : C.totalDetail)
-    cell.font = { name: FONT, size: 12, bold: true }
+    cell.fill = fill(withProfit ? C.tint3 : C.tint3)
+    cell.font = { name: FONT, size: 12, bold: true, color: { argb: C.navyDeep } }
     cell.alignment = { vertical: 'middle' }
     cell.border = border({ l: 'thin', r: c === lastCol ? 'medium' : 'thin', t: 'thin', b: 'medium' })
   }
 
   const put = (col: string, formula: string, result: number, numFmt = ACCT) =>
     set(ws, `${col}${tr}`, { formula, result }, {
-      font: { size: 12, bold: true },
+      font: { size: 12, bold: true, color: { argb: C.navyDeep } },
       numFmt,
       align: { vertical: 'middle' },
-      fill: withProfit ? C.totalProfit : C.totalDetail,
+      fill: withProfit ? C.tint3 : C.tint3,
       border: { l: 'thin', r: col === 'N' || (!withProfit && col === 'L') ? 'medium' : 'thin', t: 'thin', b: 'medium' },
     })
 
@@ -542,7 +557,7 @@ function writeDetailTotal(
       font: { size: 12, bold: true },
       numFmt: PCT,
       align: { horizontal: 'center', vertical: 'middle' },
-      fill: C.totalProfit,
+      fill: C.tint3,
       border: { l: 'thin', r: 'medium', t: 'thin', b: 'medium' },
     })
   }
@@ -594,12 +609,12 @@ function appendProfitFeeBlock(
   set(ws, `A${head}`, '- 이윤 (갑지 요율)', {
     font: { size: 10, bold: true },
     align: { horizontal: 'left', vertical: 'middle' },
-    fill: C.section,
+    fill: C.tint1,
     border: { l: 'medium', r: 'thin', t: 'thin', b: 'thin' },
   })
   for (let c = 2; c <= 14; c++) {
     const cell = ws.getCell(head, c)
-    cell.fill = fill(C.section)
+    cell.fill = fill(C.tint1)
     cell.font = { name: FONT, size: 10, bold: true }
     cell.alignment = { horizontal: 'right', vertical: 'middle' }
     cell.border = border({ l: 'thin', r: c === 14 ? 'medium' : 'thin', t: 'thin', b: 'thin' })
@@ -667,25 +682,25 @@ function appendProfitFeeBlock(
   ws.getRow(fr).height = 39
   ws.mergeCells(`A${fr}:D${fr}`)
   set(ws, `A${fr}`, '최종 합계 (VAT 별도)', {
-    font: { size: 12, bold: true },
+    font: { size: 12, bold: true, color: { argb: C.navyDeep } },
     align: { horizontal: 'center', vertical: 'middle' },
-    fill: C.totalProfit,
+    fill: C.tint3,
     border: { l: 'medium', r: 'thin', t: 'thin', b: 'medium' },
   })
   for (let c = 2; c <= 14; c++) {
     const cell = ws.getCell(fr, c)
-    cell.fill = fill(C.totalProfit)
-    cell.font = { name: FONT, size: 12, bold: true }
+    cell.fill = fill(C.tint3)
+    cell.font = { name: FONT, size: 12, bold: true, color: { argb: C.navyDeep } }
     cell.alignment = { vertical: 'middle' }
     cell.border = border({ l: 'thin', r: c === 14 ? 'medium' : 'thin', t: 'thin', b: 'medium' })
   }
   const feeRows = [head + 1, head + 2, head + 3]
   const put = (col: string, formula: string, result: number, numFmt = ACCT) =>
     set(ws, `${col}${fr}`, { formula, result }, {
-      font: { size: 12, bold: true },
+      font: { size: 12, bold: true, color: { argb: C.navyDeep } },
       numFmt,
       align: { vertical: 'middle' },
-      fill: C.totalProfit,
+      fill: C.tint3,
       border: { l: 'thin', r: col === 'N' ? 'medium' : 'thin', t: 'thin', b: 'medium' },
     })
 
@@ -701,7 +716,7 @@ function appendProfitFeeBlock(
     font: { size: 12, bold: true },
     numFmt: PCT,
     align: { horizontal: 'center', vertical: 'middle' },
-    fill: C.totalProfit,
+    fill: C.tint3,
     border: { l: 'thin', r: 'medium', t: 'thin', b: 'medium' },
   })
 }

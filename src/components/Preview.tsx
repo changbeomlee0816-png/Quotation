@@ -6,8 +6,8 @@ import {
   fmt,
   fmtPct,
   formatDateKR,
-  hangulAmountLine,
   itemTotals,
+  numberToHangul,
   pct,
   sectionTotals,
 } from '../calc'
@@ -37,7 +37,7 @@ export function Preview({ pages, selected, input, standards, sections, zoom }: P
           {p.kind === 'cover' ? (
             <CoverPage input={input} standards={standards} sections={sections} />
           ) : (
-            <DetailPage page={p} sections={sections} standards={standards} />
+            <DetailPage page={p} sections={sections} standards={standards} input={input} />
           )}
         </div>
       ))}
@@ -62,31 +62,58 @@ function CoverPage({
   const s = std.supplier
   const BLANK_ROWS = 4
 
+  const row = (k: string, v: string) => (
+    <div className="meta-row">
+      <span className="k">{k}</span>
+      <span className="v">{v || '—'}</span>
+    </div>
+  )
+
   return (
     <>
-      <div className="cover-title">견적서</div>
-
-      <div className="cover-meta">
-        <div>
-          <p>수　신 : {input.customer || '　'}</p>
-          <p>참　조 : {input.attn || '　'}</p>
-          <p>제　목 : {input.subject || '　'}</p>
-          <p>날　짜 : {formatDateKR(input.date)}</p>
-          <p>유효기간 : {input.validity}</p>
-          <p>지불조건 : {input.payment}</p>
+      <div className="doc-head">
+        <div className="doc-title">
+          <span className="ko">견적서</span>
+          <span className="en">QUOTATION</span>
         </div>
-        <div className="supplier">
-          <p>{s.address}</p>
-          <p style={{ fontSize: '13pt' }}>{s.company}</p>
-          <p>사업자등록번호 : {s.bizNo}</p>
-          <p>대 표 이 사 : {s.ceo}</p>
-          <p>T E L : {s.tel}</p>
-          <p>F A X : {s.fax}</p>
-          <p>담 당 자 : {s.manager}</p>
+        <div className="issued">
+          견적일자 <b>{formatDateKR(input.date)}</b>
+          <br />
+          유효기간 <b>{input.validity}</b>
         </div>
       </div>
 
-      <div className="cover-sum">{hangulAmountLine(cover.total)}</div>
+      <div className="cover-meta">
+        <div className="meta-block">
+          <div className="cap">수 신 처</div>
+          {row('업체명', input.customer)}
+          {row('참　조', input.attn)}
+          {row('제　목', input.subject)}
+          {row('지불조건', input.payment)}
+        </div>
+
+        <div className="meta-block supplier-block">
+          <div className="cap">공 급 자</div>
+          <div className="supplier-name">{s.company}</div>
+          <div className="supplier-addr">{s.address}</div>
+          {row('사업자등록번호', s.bizNo)}
+          <div className="meta-row">
+            <span className="k">대표이사</span>
+            <span className="v">
+              {s.ceo}
+              <span className="seal">(인)</span>
+            </span>
+          </div>
+          {row('TEL / FAX', `${s.tel}  /  ${s.fax}`)}
+          {row('담당자', s.manager)}
+        </div>
+      </div>
+
+      <div className="amount-band">
+        <span className="label">합 계 금 액</span>
+        <span className="hangul">일금 {numberToHangul(cover.total)} 원정</span>
+        <span className="num">₩{Math.round(cover.total).toLocaleString('ko-KR')}</span>
+      </div>
 
       <table className="cover-table">
         <thead>
@@ -101,9 +128,9 @@ function CoverPage({
         </thead>
         <tbody>
           {cover.rows.map((r) => (
-            <tr key={r.no}>
+            <tr className="item" key={r.no}>
               <td className="c">{r.no}</td>
-              <td>{r.name}</td>
+              <td className="name">{r.name}</td>
               <td className="c">{r.unit}</td>
               <td className="c">{r.qty}</td>
               <td className="r">{fmt(r.price)}</td>
@@ -120,21 +147,21 @@ function CoverPage({
               <td></td>
             </tr>
           ))}
-          <tr className="total">
+          <tr className="sub">
             <td></td>
             <td className="c" colSpan={4}>
               합　　계 (VAT 별도)
             </td>
             <td className="r">{fmt(cover.total)}</td>
           </tr>
-          <tr>
+          <tr className="vat">
             <td></td>
             <td className="c" colSpan={4}>
               부가세 ({pct(std.rates.vat)})
             </td>
             <td className="r">{fmt(cover.vat)}</td>
           </tr>
-          <tr className="total">
+          <tr className="grand-total">
             <td></td>
             <td className="c" colSpan={4}>
               총　　계 (VAT 포함)
@@ -145,10 +172,17 @@ function CoverPage({
       </table>
 
       <div className="cover-remarks">
-        * 특 기 사 항
+        <div className="cap">특 기 사 항</div>
         {std.remarks.map((r, i) => (
-          <div key={i}>{r}</div>
+          <div className="line" key={i}>
+            {r}
+          </div>
         ))}
+      </div>
+
+      <div className="page-foot">
+        <span>{s.company}</span>
+        <span>견적서 · {formatDateKR(input.date)}</span>
       </div>
     </>
   )
@@ -162,10 +196,12 @@ function DetailPage({
   page,
   sections,
   standards: std,
+  input,
 }: {
   page: QuotePage
   sections: Section[]
   standards: Standards
+  input: QuoteInput
 }) {
   const withProfit = page.kind === 'profit'
   const cover = buildCover(sections, std)
@@ -189,20 +225,27 @@ function DetailPage({
 
   return (
     <>
-      <div className="detail-title">
-        {withProfit ? '스마트분전반 시공 매출이익' : '스마트분전반, 계측시공 견적'}
+      <div className="sheet-head">
+        <span className="title">
+          {withProfit ? '스마트분전반 시공 매출이익' : '스마트분전반, 계측시공 견적'}
+        </span>
+        {withProfit && <span className="chip">내부용</span>}
         {page.totalOfKind > 1 && (
-          <span style={{ fontSize: '10pt', fontWeight: 400 }}>
-            {'  '}({page.index} / {page.totalOfKind})
+          <span className="page-no">
+            {page.index} / {page.totalOfKind}
           </span>
         )}
+      </div>
+      <div className="sheet-sub">
+        <span>단위 : 원 (VAT 별도)</span>
+        <span>{formatDateKR(input.date)}</span>
       </div>
 
       <table className={`detail-table${withProfit ? ' profit' : ''}`}>
         <colgroup>
           {(withProfit
-            ? [10.5, 9.5, 3, 3.5, 6.5, 7.5, 5.5, 7, 5.5, 7, 8.5, 8.5, 8.5, 9]
-            : [14, 15, 4, 5, 7.5, 8, 7, 7.5, 7, 7.5, 8.5, 9]
+            ? [9.5, 8.5, 3.5, 4, 6.5, 8, 5.5, 7.5, 5.5, 7.5, 8.5, 8.5, 8.5, 8.5]
+            : [12.5, 12.5, 4, 4.5, 7, 8.5, 6.5, 8, 6.5, 8, 9.5, 12.5]
           ).map((w, i) => (
             <col key={i} style={{ width: `${w}%` }} />
           ))}
@@ -376,7 +419,8 @@ function DetailPage({
       </table>
 
       <div className="page-foot">
-        {std.supplier.company} · {page.label}
+        <span>{std.supplier.company}</span>
+        <span>{page.label}</span>
       </div>
     </>
   )
