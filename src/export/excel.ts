@@ -381,7 +381,7 @@ function buildDetailSheet(wb: ExcelJS.Workbook, sections: Section[], withProfit:
   else Object.assign(widths, { L: 18.9 })
   Object.entries(widths).forEach(([k, v]) => (ws.getColumn(k).width = v))
 
-  const title = withProfit ? '스마트분전반 시공 매출이익' : '상 세 내 역'
+  const title = withProfit ? '매출이익' : '상세내역'
   detailHeader(ws, title, lastCol, withProfit)
 
   const layout = layoutDetail(sections)

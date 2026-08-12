@@ -227,7 +227,7 @@ function DetailPage({
     <>
       <div className="sheet-head">
         <span className="title">
-          {withProfit ? '스마트분전반 시공 매출이익' : '상 세 내 역'}
+          {withProfit ? '매출이익' : '상세내역'}
         </span>
         {withProfit && <span className="chip">내부용</span>}
         {page.totalOfKind > 1 && (
