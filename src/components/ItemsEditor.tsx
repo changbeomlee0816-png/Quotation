@@ -82,10 +82,23 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
     )
   }
 
-  const rowKeyDown = (sid: string, idx: number) => (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+  /** Ctrl+- — 현재 줄을 지우고 윗줄로 커서를 옮긴다 */
+  const deleteRow = (sid: string, idx: number, iid: string) => {
+    const sec = sections.find((s) => s.id === sid)
+    if (!sec || sec.items.length === 0) return
+    if (sec.items.length > 1) setPendingFocus({ sid, idx: Math.max(0, idx - 1) })
+    removeItem(sid, iid)
+  }
+
+  const rowKeyDown = (sid: string, idx: number, iid: string) => (e: React.KeyboardEvent) => {
+    const mod = e.ctrlKey || e.metaKey
+    if (!mod) return
+    if (e.key === 'Enter') {
       e.preventDefault()
       insertAfter(sid, idx)
+    } else if (e.key === '-' || e.code === 'Minus' || e.code === 'NumpadSubtract') {
+      e.preventDefault()
+      deleteRow(sid, idx, iid)
     }
   }
 
@@ -194,7 +207,7 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
                   {sec.items.map((it, ii) => {
                     const t = itemTotals(it)
                     return (
-                      <tr key={it.id} onKeyDown={rowKeyDown(sec.id, ii)}>
+                      <tr key={it.id} onKeyDown={rowKeyDown(sec.id, ii, it.id)}>
                         <td>
                           <input
                             type="text"
@@ -280,7 +293,7 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
                 + 단가표에서 추가
               </button>
               <span className="muted" style={{ fontSize: 11 }}>
-                입력 중 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 로 아래에 줄 추가
+                입력 중 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 줄 추가 · <kbd>Ctrl</kbd>+<kbd>-</kbd> 줄 삭제
               </span>
             </div>
 

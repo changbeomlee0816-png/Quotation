@@ -98,6 +98,15 @@ const COVER_FIRST = 16
 const COVER_BLANK_END = 25
 const COVER_TOTAL_ROW = 26
 
+/** data URL 을 ExcelJS 이미지로 등록한다. 형식을 못 읽으면 null. */
+function addSealImage(wb: ExcelJS.Workbook, dataUrl?: string): number | null {
+  if (!dataUrl) return null
+  const m = /^data:image\/(png|jpeg|gif);base64,(.+)$/.exec(dataUrl)
+  if (!m) return null
+  const extension = m[1] === 'jpeg' ? 'jpeg' : m[1] === 'gif' ? 'gif' : 'png'
+  return wb.addImage({ base64: m[2], extension })
+}
+
 function buildCoverSheet(
   wb: ExcelJS.Workbook,
   input: QuoteInput,
@@ -163,6 +172,16 @@ function buildCoverSheet(
     set(ws, range.split(':')[0], text, {
       font: { size: 11, bold: true },
       align: { horizontal: 'left', vertical: 'middle' },
+    })
+  }
+
+  // 직인 — 대표이사(E9) 이름 오른쪽에 겹쳐 찍는다
+  const sealId = addSealImage(wb, s.sealDataUrl)
+  if (sealId !== null) {
+    ws.addImage(sealId, {
+      tl: { col: 5.75, row: 8.05 },
+      ext: { width: 58, height: 58 },
+      editAs: 'oneCell',
     })
   }
 

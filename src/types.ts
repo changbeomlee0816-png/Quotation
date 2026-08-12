@@ -130,6 +130,12 @@ export interface Standards {
     tel: string
     fax: string
     manager: string
+    /**
+     * 직인 이미지 (PNG data URL).
+     * 저장소가 공개라 소스에 넣지 않는다 — 각자 브라우저에서 업로드해 쓰고,
+     * "기준·견적 저장" JSON 에만 담아 사내에서 보관한다.
+     */
+    sealDataUrl?: string
   }
   /** 갑지 특기사항 */
   remarks: string[]

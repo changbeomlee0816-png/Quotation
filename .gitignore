@@ -10,3 +10,6 @@ npm-debug.log*
 *.quote.json
 견적*.json
 standards*.json
+# 직인 등 사내 이미지 — 저장소에 올리지 않는다
+*seal*.png
+*직인*

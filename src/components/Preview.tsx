@@ -99,9 +99,13 @@ function CoverPage({
           {row('사업자등록번호', s.bizNo)}
           <div className="meta-row">
             <span className="k">대표이사</span>
-            <span className="v">
+            <span className="v ceo">
               {s.ceo}
-              <span className="seal">(인)</span>
+              {s.sealDataUrl ? (
+                <img className="seal-img" src={s.sealDataUrl} alt="직인" />
+              ) : (
+                <span className="seal">(인)</span>
+              )}
             </span>
           </div>
           {row('TEL / FAX', `${s.tel}  /  ${s.fax}`)}

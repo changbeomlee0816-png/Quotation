@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import type { CloudTier, CostKind, Standards, UnitRule } from '../types'
 import { COST_KIND_LABEL } from '../types'
 import { DEFAULT_STANDARDS } from '../defaults'
@@ -10,8 +11,38 @@ interface Props {
 
 const KINDS: CostKind[] = ['material', 'labor', 'expense']
 
+/** 업로드한 직인을 220px 이내 PNG data URL 로 줄인다 (localStorage 용량 절약) */
+async function shrinkToPng(file: File, max = 220): Promise<string> {
+  const bmp = await createImageBitmap(file)
+  const scale = Math.min(1, max / Math.max(bmp.width, bmp.height))
+  const w = Math.max(1, Math.round(bmp.width * scale))
+  const h = Math.max(1, Math.round(bmp.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('캔버스를 만들 수 없습니다.')
+  ctx.drawImage(bmp, 0, 0, w, h)
+  bmp.close?.()
+  return canvas.toDataURL('image/png')
+}
+
 export function StandardsEditor({ standards: std, onChange }: Props) {
   const patch = (p: Partial<Standards>) => onChange({ ...std, ...p })
+
+  const sealRef = useRef<HTMLInputElement>(null)
+  const [sealError, setSealError] = useState<string | null>(null)
+
+  const pickSeal = async (file: File) => {
+    setSealError(null)
+    try {
+      if (file.size > 8 * 1024 * 1024) throw new Error('8MB 이하 이미지를 올려 주세요.')
+      const dataUrl = await shrinkToPng(file)
+      patch({ supplier: { ...std.supplier, sealDataUrl: dataUrl } })
+    } catch (e) {
+      setSealError(`직인을 불러오지 못했습니다: ${(e as Error).message}`)
+    }
+  }
 
   const { install, network } = std.construction
   const m = std.materials
@@ -473,6 +504,57 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
             onChange={(e) => patch({ supplier: { ...std.supplier, address: e.target.value } })}
           />
         </label>
+
+        <div style={{ marginTop: 14, borderTop: '1px dashed var(--line)', paddingTop: 12 }}>
+          <div className="row" style={{ alignItems: 'flex-start' }}>
+            <div className="seal-slot">
+              {std.supplier.sealDataUrl ? (
+                <img src={std.supplier.sealDataUrl} alt="직인" />
+              ) : (
+                <span className="muted">직인 없음</span>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>직인 (대표이사 인)</div>
+              <p className="hint" style={{ margin: '0 0 8px' }}>
+                갑지의 대표이사 이름 옆에 찍힙니다. PNG·JPG 를 올리면 220px 로 줄여 보관합니다.
+                배경이 없는 <b>투명 PNG</b> 를 쓰면 가장 깔끔합니다.
+              </p>
+              <div className="row">
+                <input
+                  ref={sealRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) void pickSeal(f)
+                    e.target.value = ''
+                  }}
+                />
+                <button className="btn sm" onClick={() => sealRef.current?.click()}>
+                  {std.supplier.sealDataUrl ? '직인 바꾸기' : '직인 올리기'}
+                </button>
+                {std.supplier.sealDataUrl && (
+                  <button
+                    className="btn sm"
+                    onClick={() => patch({ supplier: { ...std.supplier, sealDataUrl: undefined } })}
+                  >
+                    직인 지우기
+                  </button>
+                )}
+              </div>
+              {sealError && (
+                <div style={{ color: 'var(--danger)', fontSize: 11.5, marginTop: 6 }}>{sealError}</div>
+              )}
+            </div>
+          </div>
+          <div className="notice" style={{ marginTop: 10, marginBottom: 0 }}>
+            직인은 <b>저장소에 올라가지 않습니다.</b> 브라우저에만 저장되고, 상단{' '}
+            <b>기준·견적 저장</b> JSON 에 담겨 사내에서만 공유됩니다. 공개 주소로 배포되는 프로그램이라
+            도장 이미지를 소스에 넣으면 누구나 내려받을 수 있기 때문입니다.
+          </div>
+        </div>
       </div>
 
       {/* 6) 특기사항 */}
