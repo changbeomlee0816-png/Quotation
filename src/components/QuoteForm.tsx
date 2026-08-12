@@ -1,4 +1,5 @@
 import type { QuoteInput, Standards } from '../types'
+import { COST_KIND_LABEL } from '../types'
 import { findCloudTier, fmt } from '../calc'
 
 interface Props {
@@ -14,7 +15,13 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
 
   const tier = findCloudTier(standards.cloud.tiers, input.points)
   const { install, network, networkMeterPlusOne } = standards.construction
+  const materials = standards.materials
   const netQty = input.meterCount > 0 ? input.meterCount + (networkMeterPlusOne ? 1 : 0) : 0
+
+  const materialTotal =
+    (materials.meter.enabled ? materials.meter.price * input.meterCount : 0) +
+    (materials.module.enabled ? materials.module.price * input.moduleCount : 0) +
+    (materials.gateway.enabled ? materials.gateway.price * input.gatewayCount : 0)
 
   const cloudTotal = tier && !tier.negotiable ? tier.price * input.cloudYears : 0
   const installTotal =
@@ -115,6 +122,24 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
               onChange={(e) => set('ctCount', num(e.target.value))}
             />
           </label>
+          <label className="f">
+            <span>모듈 갯수</span>
+            <input
+              type="number"
+              min={0}
+              value={input.moduleCount}
+              onChange={(e) => set('moduleCount', num(e.target.value))}
+            />
+          </label>
+          <label className="f">
+            <span>게이트웨이 갯수</span>
+            <input
+              type="number"
+              min={0}
+              value={input.gatewayCount}
+              onChange={(e) => set('gatewayCount', num(e.target.value))}
+            />
+          </label>
         </div>
 
         <table className="grid-table" style={{ marginTop: 12 }}>
@@ -127,6 +152,19 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
             </tr>
           </thead>
           <tbody>
+            <tr>
+              <td style={{ padding: '5px 6px' }}>
+                자재비 <span className="tag">재료비</span>
+              </td>
+              <td style={{ padding: '5px 6px' }}>
+                계측기 {fmt(materials.meter.price)} · 모듈 {fmt(materials.module.price)} · G/W{' '}
+                {fmt(materials.gateway.price)}
+              </td>
+              <td style={{ padding: '5px 6px', textAlign: 'center' }}>
+                계측기 {input.meterCount} · 모듈 {input.moduleCount} · G/W {input.gatewayCount}
+              </td>
+              <td style={{ padding: '5px 6px', textAlign: 'right' }}>{fmt(materialTotal)}</td>
+            </tr>
             <tr>
               <td style={{ padding: '5px 6px' }}>클라우드 비용</td>
               <td style={{ padding: '5px 6px' }}>
@@ -152,7 +190,9 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
               </td>
             </tr>
             <tr>
-              <td style={{ padding: '5px 6px' }}>설치비</td>
+              <td style={{ padding: '5px 6px' }}>
+                설치비 <span className="tag auto">{COST_KIND_LABEL[install.meter.kind]}</span>
+              </td>
               <td style={{ padding: '5px 6px' }}>
                 계측기 {fmt(install.meter.price)} / C/T {fmt(install.ct.price)}
               </td>

@@ -193,7 +193,23 @@ function ruleToItem(
   return item
 }
 
-/** 견적 기준 + 입력값으로 자동 생성되는 항목들 */
+/**
+ * 자재 (재료비) — 계측기 · 모듈 · 게이트웨이.
+ * 설치비는 여기 섞지 않고 buildConstructionItems 에서 따로 계산한다.
+ */
+export function buildMaterialItems(input: QuoteInput, std: Standards): LineItem[] {
+  const m = std.materials
+  const rows: [UnitRule, number, AutoRuleId][] = [
+    [m.meter, input.meterCount, 'material-meter'],
+    [m.module, input.moduleCount, 'material-module'],
+    [m.gateway, input.gatewayCount, 'material-gateway'],
+  ]
+  return rows
+    .filter(([rule, qty]) => rule.enabled && qty > 0)
+    .map(([rule, qty, id]) => ruleToItem(rule, qty, id, ''))
+}
+
+/** 시공비 (설치비 · 네트워크 비용) — 계측기 및 C/T 갯수 기준 */
 export function buildAutoItems(input: QuoteInput, std: Standards): LineItem[] {
   const out: LineItem[] = []
   const { install, network, networkMeterPlusOne, networkMeterPlusOneNote } = std.construction
@@ -265,6 +281,7 @@ export function buildCloudItem(input: QuoteInput, std: Standards): CloudResult {
  * `locked` 표시된 줄은 사용자가 직접 손댄 것으로 보고 그대로 둔다.
  */
 export function applyStandards(sections: Section[], input: QuoteInput, std: Standards): Section[] {
+  const materials = buildMaterialItems(input, std)
   const construction = buildAutoItems(input, std)
   const cloud = buildCloudItem(input, std)
 
@@ -284,6 +301,7 @@ export function applyStandards(sections: Section[], input: QuoteInput, std: Stan
     sec.items = [...fresh, ...kept]
   }
 
+  merge(std.materials.sectionTitle, materials)
   merge(std.construction.sectionTitle, construction)
   merge(std.cloud.sectionTitle, cloud.item ? [cloud.item] : [])
 

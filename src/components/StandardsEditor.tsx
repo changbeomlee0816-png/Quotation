@@ -14,9 +14,12 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
   const patch = (p: Partial<Standards>) => onChange({ ...std, ...p })
 
   const { install, network } = std.construction
+  const m = std.materials
   const hasAnyCost =
     std.cloud.tiers.some((t) => t.cost > 0) ||
-    [install.meter, install.ct, network.meter, network.ct].some((r) => r.cost > 0) ||
+    [m.meter, m.module, m.gateway, install.meter, install.ct, network.meter, network.ct].some(
+      (r) => r.cost > 0,
+    ) ||
     std.catalog.some((c) => c.cost > 0)
 
   /* ---------------- 클라우드 구간 ---------------- */
@@ -57,6 +60,63 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
         [group]: { ...std.construction[group], [which]: { ...std.construction[group][which], ...p } },
       },
     })
+
+  /* ---------------- 자재 단가 ---------------- */
+
+  const setMaterial = (which: 'meter' | 'module' | 'gateway', p: Partial<UnitRule>) =>
+    patch({
+      materials: { ...std.materials, [which]: { ...std.materials[which], ...p } },
+    })
+
+  const materialRow = (which: 'meter' | 'module' | 'gateway', label: string) => {
+    const r = std.materials[which]
+    return (
+      <tr key={which}>
+        <td style={{ padding: '4px 6px', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</td>
+        <td>
+          <input type="text" value={r.name} onChange={(e) => setMaterial(which, { name: e.target.value })} />
+        </td>
+        <td>
+          <input type="text" value={r.spec} onChange={(e) => setMaterial(which, { spec: e.target.value })} />
+        </td>
+        <td style={{ width: 52 }}>
+          <input type="text" value={r.unit} onChange={(e) => setMaterial(which, { unit: e.target.value })} />
+        </td>
+        <td className="num" style={{ width: 96 }}>
+          <input
+            type="number"
+            value={r.price}
+            onChange={(e) => setMaterial(which, { price: Number(e.target.value) || 0 })}
+          />
+        </td>
+        <td className="num" style={{ width: 96 }}>
+          <input
+            type="number"
+            value={r.cost}
+            onChange={(e) => setMaterial(which, { cost: Number(e.target.value) || 0 })}
+          />
+        </td>
+        <td style={{ width: 84 }}>
+          <select value={r.kind} onChange={(e) => setMaterial(which, { kind: e.target.value as CostKind })}>
+            {KINDS.map((k) => (
+              <option key={k} value={k}>
+                {COST_KIND_LABEL[k]}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td style={{ width: 44, textAlign: 'center' }}>
+          <input
+            type="checkbox"
+            checked={r.enabled}
+            onChange={(e) => setMaterial(which, { enabled: e.target.checked })}
+          />
+        </td>
+      </tr>
+    )
+  }
+
+  /* ---------------- 시공 단가 ---------------- */
 
   const ruleRow = (group: 'install' | 'network', which: 'meter' | 'ct', label: string) => {
     const r = std.construction[group][which]
@@ -239,9 +299,54 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
         </div>
       </div>
 
-      {/* 2) 시공비용 */}
+      {/* 2) 자재비 */}
       <div className="card">
-        <h3>2) 시공비용 — 계측기 및 C/T 갯수 기준</h3>
+        <h3>2) 자재비 — 계측기 · 모듈 · 게이트웨이 (재료비)</h3>
+        <p className="hint">
+          갯수를 넣으면 <b>재료비</b>로 계상됩니다. 설치비는 여기 섞지 않고 아래 3) 에서 따로 계산해
+          별도 줄로 들어갑니다.
+        </p>
+        <div className="scroll-x">
+          <table className="grid-table">
+            <thead>
+              <tr>
+                <th style={{ width: 84 }}>구분</th>
+                <th>견적서 품명</th>
+                <th>규격</th>
+                <th>단위</th>
+                <th>판매가</th>
+                <th>원가</th>
+                <th>비목</th>
+                <th>사용</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materialRow('meter', '계측기')}
+              {materialRow('module', '모듈')}
+              {materialRow('gateway', '게이트웨이')}
+            </tbody>
+          </table>
+        </div>
+        <label className="f" style={{ marginTop: 10 }}>
+          <span>자재비 그룹 제목</span>
+          <input
+            type="text"
+            value={std.materials.sectionTitle}
+            onChange={(e) => patch({ materials: { ...std.materials, sectionTitle: e.target.value } })}
+          />
+        </label>
+        <div className="notice" style={{ marginTop: 10, marginBottom: 0 }}>
+          판매가 기본값은 기준 견적서(스마트분전반 ESG)에서 가져온 값입니다 — 계측기 ACCURA 2300S
+          60만, DO 모듈 20만, 게이트웨이 NDAS 350만. 실제 견적에 맞게 고쳐 쓰세요.
+        </div>
+      </div>
+
+      {/* 3) 시공비용 */}
+      <div className="card">
+        <h3>3) 시공비용 — 계측기 및 C/T 갯수 기준</h3>
+        <p className="hint">
+          자재비와 별개로 계산되어 견적서에 <b>따로</b> 들어갑니다.
+        </p>
         <div className="scroll-x">
           <table className="grid-table">
             <thead>
@@ -297,9 +402,9 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
         </div>
       </div>
 
-      {/* 3) 요율 */}
+      {/* 4) 요율 */}
       <div className="card">
-        <h3>3) 갑지 요율 · 절삭</h3>
+        <h3>4) 갑지 요율 · 절삭</h3>
         <div className="grid c2">
           {rate('generalAdmin', '일반관리비', '(재+노+경) ×')}
           {rate('safety', '안전 관리비', '(재+노) ×')}
@@ -336,9 +441,9 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
         </p>
       </div>
 
-      {/* 4) 공급자 */}
+      {/* 5) 공급자 */}
       <div className="card">
-        <h3>4) 공급자 정보 (갑지 우측)</h3>
+        <h3>5) 공급자 정보 (갑지 우측)</h3>
         <div className="grid c2">
           {(
             [
@@ -370,9 +475,9 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
         </label>
       </div>
 
-      {/* 5) 특기사항 */}
+      {/* 6) 특기사항 */}
       <div className="card">
-        <h3>5) 특기사항</h3>
+        <h3>6) 특기사항</h3>
         <textarea
           rows={4}
           value={std.remarks.join('\n')}

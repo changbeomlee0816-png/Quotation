@@ -34,6 +34,9 @@ export interface Section {
 
 export type AutoRuleId =
   | 'cloud' /** 클라우드 비용 (Point 구간) */
+  | 'material-meter' /** 재료비 - 계측기 */
+  | 'material-module' /** 재료비 - 모듈 */
+  | 'material-gateway' /** 재료비 - 게이트웨이 */
   | 'install-meter' /** 설치비 - 계측기 */
   | 'install-ct' /** 설치비 - C/T */
   | 'network-meter' /** 네트워크 비용 - 계측기 (총갯수 +1) */
@@ -83,7 +86,17 @@ export interface Standards {
     /** 비고에 붙는 문구 (예: "n년기준") */
     noteTemplate: string
   }
-  /** 2) 시공비용: 계측기 및 C/T 갯수 기준 */
+  /**
+   * 2) 자재: 계측기 · 모듈 · 게이트웨이는 재료비로 계상한다.
+   * 설치비는 여기 섞지 않고 아래 construction 에서 따로 계산한다.
+   */
+  materials: {
+    sectionTitle: string
+    meter: UnitRule
+    module: UnitRule
+    gateway: UnitRule
+  }
+  /** 3) 시공비용: 계측기 및 C/T 갯수 기준 */
   construction: {
     sectionTitle: string
     install: { meter: UnitRule; ct: UnitRule }
@@ -156,6 +169,10 @@ export interface QuoteInput {
   meterCount: number
   /** C/T 갯수 */
   ctCount: number
+  /** 모듈 갯수 */
+  moduleCount: number
+  /** 게이트웨이 갯수 */
+  gatewayCount: number
   /** 클라우드 이용 년수 */
   cloudYears: number
 }

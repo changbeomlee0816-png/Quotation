@@ -45,7 +45,8 @@ export default function App() {
 
   /* ---------------- 견적 기준 자동 적용 ---------------- */
 
-  const applyKey = `${doc.input.points}|${doc.input.meterCount}|${doc.input.ctCount}|${doc.input.cloudYears}`
+  const { points, meterCount, ctCount, moduleCount, gatewayCount, cloudYears } = doc.input
+  const applyKey = [points, meterCount, ctCount, moduleCount, gatewayCount, cloudYears].join('|')
   const lastApplied = useRef<string>('')
 
   useEffect(() => {

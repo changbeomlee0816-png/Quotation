@@ -86,7 +86,7 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
     <>
       {sections.length === 0 && (
         <div className="notice">
-          아직 항목이 없습니다. <b>견적 정보</b> 탭에서 Point·계측기·C/T 갯수를 입력하면 기준에 따라 자동으로
+          아직 항목이 없습니다. <b>견적 정보</b> 탭에서 Point·계측기·C/T·모듈·게이트웨이 갯수를 입력하면 기준에 따라 자동으로
           채워지고, 아래 <b>+ 그룹 추가</b>로 직접 넣을 수도 있습니다.
         </div>
       )}

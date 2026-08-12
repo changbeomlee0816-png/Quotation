@@ -53,6 +53,36 @@ export const DEFAULT_STANDARDS: Standards = {
     unit: '식',
     noteTemplate: '{years}년기준 / {points}P',
   },
+  materials: {
+    sectionTitle: '- 자재비',
+    meter: {
+      name: '계측기',
+      spec: 'ACCURA 2300S',
+      unit: 'EA',
+      price: 60 * 만,
+      cost: NO_COST,
+      kind: 'material',
+      enabled: true,
+    },
+    module: {
+      name: '원격제어 모듈',
+      spec: 'DO 모듈',
+      unit: 'EA',
+      price: 20 * 만,
+      cost: NO_COST,
+      kind: 'material',
+      enabled: true,
+    },
+    gateway: {
+      name: '게이트웨이',
+      spec: 'NDAS',
+      unit: 'EA',
+      price: 350 * 만,
+      cost: NO_COST,
+      kind: 'material',
+      enabled: true,
+    },
+  },
   construction: {
     sectionTitle: '- 계측기 시공',
     install: {
@@ -188,5 +218,7 @@ export const DEFAULT_INPUT: QuoteInput = {
   points: 0,
   meterCount: 0,
   ctCount: 0,
+  moduleCount: 0,
+  gatewayCount: 0,
   cloudYears: 1,
 }
