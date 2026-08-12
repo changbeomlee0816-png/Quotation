@@ -1,0 +1,32 @@
+{
+  "name": "quotation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "유호스트 견적 제작 프로그램 - 견적 기준 기반 견적서 자동 생성 (Excel / PDF)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/changbeomlee0816-png/Quotation.git"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "html2canvas-pro": "^2.3.3",
+    "jspdf": "^4.2.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}

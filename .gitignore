@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+npm-debug.log*
+.vite/
+*.tsbuildinfo
+
+# 견적 기준·견적 백업 JSON (원가 포함) — 저장소에 올리지 않는다
+*.quote.json
+견적*.json
+standards*.json
