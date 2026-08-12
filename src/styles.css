@@ -46,8 +46,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .main { display: flex; flex: 1; min-height: 0; }
 
 .sidebar {
-  width: 560px; flex: none; background: var(--panel);
-  border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0;
+  flex: none; background: var(--panel);
+  display: flex; flex-direction: column; min-height: 0;
 }
 .tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
 .tabs button {
@@ -135,6 +135,32 @@ table.grid-table td input:focus, table.grid-table td select:focus { background: 
 table.grid-table tr.section-row td { background: #f0f3f8; font-weight: 700; }
 table.grid-table td.num input { text-align: right; }
 .scroll-x { overflow-x: auto; }
+
+/* 상세 항목 표 — 엑셀처럼 내용이 다 보이도록 칸이 글자 수에 맞춰 늘어난다.
+   width:100% 를 풀어야 input 의 size 속성이 먹는다. */
+table.items-table { table-layout: auto; width: auto; min-width: 100%; }
+table.items-table th { position: sticky; top: 0; z-index: 1; }
+table.items-table td input[type='text'] { width: auto; min-width: 100%; }
+table.items-table td.num input { width: 100%; }
+/* 스피너를 없애 숫자 자릿수에 쓸 폭을 확보한다 */
+table.items-table td.num input::-webkit-outer-spin-button,
+table.items-table td.num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+table.items-table td.num input { -moz-appearance: textfield; appearance: textfield; }
+table.items-table td, table.items-table th { white-space: nowrap; }
+
+kbd {
+  font-family: inherit; font-size: 10px; font-weight: 700;
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px;
+  padding: 0 4px; background: #f7f9fc; color: #445;
+}
+
+/* 사이드바 폭 조절 손잡이 */
+.splitter {
+  flex: none; width: 6px; cursor: col-resize; background: var(--line);
+  border-left: 1px solid var(--line-soft); border-right: 1px solid var(--line-soft);
+}
+.splitter:hover, .splitter.on { background: var(--accent); }
+body.resizing { cursor: col-resize; user-select: none; }
 
 /* ================================================================
    견적서 문서 디자인
@@ -350,6 +376,3 @@ table.detail-table.profit td, table.detail-table.profit th { padding: 1.4mm 0.8m
 
 .zoom { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
 
-@media (max-width: 1400px) {
-  .sidebar { width: 460px; }
-}

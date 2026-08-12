@@ -7,15 +7,28 @@ import { applyStandards, buildCover, fmt, fmtPct } from './calc'
 import { buildPages } from './pages'
 import { buildWorkbook, downloadWorkbook } from './export/excel'
 import { exportPdf } from './export/pdf'
-import { DEFAULT_DOC, exportProject, importProject, useDoc, useStandards } from './store'
+import {
+  DEFAULT_DOC,
+  exportProject,
+  importProject,
+  useDoc,
+  usePersistentState,
+  useStandards,
+} from './store'
 import type { QuoteInput, Section } from './types'
 
 type Tab = 'quote' | 'items' | 'standards'
+
+const KEY_SIDEBAR_W = 'youhost.ui.sidebarWidth.v1'
+const DEFAULT_SIDEBAR_W = 620
+const MIN_SIDEBAR_W = 380
 
 export default function App() {
   const [standards, setStandards] = useStandards()
   const [doc, setDoc] = useDoc()
   const [tab, setTab] = useState<Tab>('quote')
+  const [sidebarW, setSidebarW] = usePersistentState<number>(KEY_SIDEBAR_W, DEFAULT_SIDEBAR_W)
+  const [resizing, setResizing] = useState(false)
   const [zoom, setZoom] = useState(0.62)
   const [busy, setBusy] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -57,6 +70,28 @@ export default function App() {
     // 기준 변경 후에는 "견적 기준 다시 적용" 버튼을 쓴다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyKey])
+
+  /* ---------------- 편집 영역 폭 조절 ---------------- */
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setResizing(true)
+    document.body.classList.add('resizing')
+    const startX = e.clientX
+    const startW = sidebarW
+    const onMove = (ev: MouseEvent) => {
+      const max = Math.max(MIN_SIDEBAR_W, window.innerWidth - 320)
+      setSidebarW(Math.min(max, Math.max(MIN_SIDEBAR_W, startW + ev.clientX - startX)))
+    }
+    const onUp = () => {
+      setResizing(false)
+      document.body.classList.remove('resizing')
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   const setInput = (input: QuoteInput) => setDoc((d) => ({ ...d, input }))
   const setSections = (sections: Section[]) => setDoc((d) => ({ ...d, sections }))
@@ -164,7 +199,7 @@ export default function App() {
       </div>
 
       <div className="main">
-        <div className="sidebar">
+        <div className="sidebar" style={{ width: sidebarW }}>
           <div className="tabs">
             <button className={tab === 'quote' ? 'on' : ''} onClick={() => setTab('quote')}>
               견적 정보
@@ -186,6 +221,13 @@ export default function App() {
             {tab === 'standards' && <StandardsEditor standards={standards} onChange={setStandards} />}
           </div>
         </div>
+
+        <div
+          className={`splitter${resizing ? ' on' : ''}`}
+          onMouseDown={startResize}
+          onDoubleClick={() => setSidebarW(DEFAULT_SIDEBAR_W)}
+          title="드래그해서 편집 영역 폭 조절 (더블클릭하면 기본값)"
+        />
 
         <div className="viewer">
           <div className="viewer-bar">

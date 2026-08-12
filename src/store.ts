@@ -5,11 +5,17 @@ import { DEFAULT_INPUT, DEFAULT_STANDARDS } from './defaults'
 const KEY_STD = 'youhost.quote.standards.v1'
 const KEY_DOC = 'youhost.quote.doc.v1'
 
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
 function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
     if (!raw) return fallback
-    return { ...fallback, ...(JSON.parse(raw) as T) }
+    const parsed = JSON.parse(raw) as T
+    // 객체일 때만 기본값과 병합한다. 숫자·문자열 같은 값은 그대로 쓴다.
+    if (isPlainObject(fallback) && isPlainObject(parsed)) return { ...fallback, ...parsed }
+    return parsed
   } catch {
     return fallback
   }

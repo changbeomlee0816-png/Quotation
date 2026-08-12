@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { LineItem, Section, Standards } from '../types'
 import { emptyItem, fmt, fmtPct, itemTotals, sectionTotals, uid } from '../calc'
+
+/** 엑셀처럼 글자가 다 보이도록 입력칸 너비를 내용 길이에 맞춘다 (한글은 두 칸으로 계산) */
+function fitSize(value: string, min: number, max: number) {
+  let w = 0
+  for (const ch of value) w += ch.charCodeAt(0) > 0x2e80 ? 2 : 1
+  return Math.max(min, Math.min(max, w + 2))
+}
 
 interface Props {
   sections: Section[]
@@ -17,6 +24,19 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
     [standards.catalog],
   )
   const [category, setCategory] = useState<string>('')
+
+  /** 줄을 새로 넣은 뒤 그 줄의 품명 칸에 커서를 놓기 위한 표시 */
+  const [pendingFocus, setPendingFocus] = useState<{ sid: string; idx: number } | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!pendingFocus) return
+    const sel = `input[data-cell="${CSS.escape(pendingFocus.sid)}:${pendingFocus.idx}:name"]`
+    const el = bodyRef.current?.querySelector<HTMLInputElement>(sel)
+    el?.focus()
+    el?.scrollIntoView({ block: 'nearest' })
+    setPendingFocus(null)
+  }, [pendingFocus, sections])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -41,10 +61,33 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
   const editItem = (sid: string, item: LineItem, p: Partial<LineItem>) =>
     updateItem(sid, item.id, item.auto && !item.locked ? { ...p, locked: true } : p)
 
-  const addItem = (sid: string, item?: LineItem) =>
+  const addItem = (sid: string, item?: LineItem) => {
+    const sec = sections.find((s) => s.id === sid)
+    setPendingFocus({ sid, idx: sec ? sec.items.length : 0 })
     onChange(
       sections.map((s) => (s.id === sid ? { ...s, items: [...s.items, item ?? emptyItem()] } : s)),
     )
+  }
+
+  /** Ctrl+Enter — 현재 줄 바로 아래에 빈 줄을 넣고 품명 칸으로 커서를 옮긴다 */
+  const insertAfter = (sid: string, idx: number) => {
+    setPendingFocus({ sid, idx: idx + 1 })
+    onChange(
+      sections.map((s) => {
+        if (s.id !== sid) return s
+        const items = [...s.items]
+        items.splice(idx + 1, 0, emptyItem())
+        return { ...s, items }
+      }),
+    )
+  }
+
+  const rowKeyDown = (sid: string, idx: number) => (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault()
+      insertAfter(sid, idx)
+    }
+  }
 
   const removeItem = (sid: string, iid: string) =>
     onChange(
@@ -76,14 +119,23 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
     onChange(next)
   }
 
-  const numCell = (value: number, onSet: (v: number) => void) => (
-    <td className="num">
-      <input type="number" value={value || ''} onChange={(e) => onSet(Number(e.target.value) || 0)} />
-    </td>
-  )
+  /** 숫자 칸도 자릿수만큼 넓어지게 (type=number 는 size 가 안 먹어서 min-width 로 맞춘다) */
+  const numCell = (value: number, onSet: (v: number) => void) => {
+    const digits = value ? String(Math.round(value)).length : 0
+    return (
+      <td className="num">
+        <input
+          type="number"
+          style={{ minWidth: `${Math.max(7, digits + 2)}ch` }}
+          value={value || ''}
+          onChange={(e) => onSet(Number(e.target.value) || 0)}
+        />
+      </td>
+    )
+  }
 
   return (
-    <>
+    <div ref={bodyRef}>
       {sections.length === 0 && (
         <div className="notice">
           아직 항목이 없습니다. <b>견적 정보</b> 탭에서 Point·계측기·C/T·모듈·게이트웨이 갯수를 입력하면 기준에 따라 자동으로
@@ -122,30 +174,33 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
             </div>
 
             <div className="scroll-x">
-              <table className="grid-table">
+              <table className="grid-table items-table">
                 <thead>
                   <tr>
-                    <th style={{ width: 130 }}>품명</th>
-                    <th style={{ width: 140 }}>규격</th>
-                    <th style={{ width: 44 }}>단위</th>
-                    <th style={{ width: 56 }}>수량</th>
-                    <th style={{ width: 86 }}>재료비</th>
-                    <th style={{ width: 86 }}>노무비</th>
-                    <th style={{ width: 86 }}>경비</th>
-                    <th style={{ width: 86 }}>원가</th>
-                    <th style={{ width: 90 }}>합계</th>
-                    <th style={{ width: 110 }}>비고</th>
-                    <th style={{ width: 76 }}></th>
+                    <th>품명</th>
+                    <th>규격</th>
+                    <th>단위</th>
+                    <th>수량</th>
+                    <th>재료비</th>
+                    <th>노무비</th>
+                    <th>경비</th>
+                    <th>원가</th>
+                    <th>합계</th>
+                    <th>비고</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {sec.items.map((it, ii) => {
                     const t = itemTotals(it)
                     return (
-                      <tr key={it.id}>
+                      <tr key={it.id} onKeyDown={rowKeyDown(sec.id, ii)}>
                         <td>
                           <input
                             type="text"
+                            data-cell={`${sec.id}:${ii}:name`}
+                            size={fitSize(it.name, 14, 40)}
+                            title={it.name}
                             value={it.name}
                             onChange={(e) => editItem(sec.id, it, { name: e.target.value })}
                           />
@@ -153,6 +208,8 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
                         <td>
                           <input
                             type="text"
+                            size={fitSize(it.spec, 14, 44)}
+                            title={it.spec}
                             value={it.spec}
                             onChange={(e) => editItem(sec.id, it, { spec: e.target.value })}
                           />
@@ -160,6 +217,7 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
                         <td>
                           <input
                             type="text"
+                            size={fitSize(it.unit, 4, 8)}
                             value={it.unit}
                             onChange={(e) => editItem(sec.id, it, { unit: e.target.value })}
                           />
@@ -175,6 +233,8 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
                         <td>
                           <input
                             type="text"
+                            size={fitSize(it.note, 12, 32)}
+                            title={it.note}
                             value={it.note}
                             onChange={(e) => editItem(sec.id, it, { note: e.target.value })}
                           />
@@ -219,6 +279,9 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
               >
                 + 단가표에서 추가
               </button>
+              <span className="muted" style={{ fontSize: 11 }}>
+                입력 중 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 로 아래에 줄 추가
+              </span>
             </div>
 
             {catalogFor === sec.id && (
@@ -295,6 +358,6 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
       <button className="btn primary" onClick={addSection}>
         + 그룹 추가
       </button>
-    </>
+    </div>
   )
 }
