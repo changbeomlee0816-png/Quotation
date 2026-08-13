@@ -8,14 +8,16 @@ import { buildPages } from './pages'
 import { buildWorkbook, downloadWorkbook } from './export/excel'
 import { exportPdf } from './export/pdf'
 import {
-  DEFAULT_DOC,
   exportProject,
   importProject,
   useDoc,
+  useLibrary,
   usePersistentState,
   useStandards,
 } from './store'
-import type { QuoteInput, Section } from './types'
+import { DEFAULT_INPUT, nextQuoteNo, todayISO } from './defaults'
+import { QuoteLibrary } from './components/QuoteLibrary'
+import type { QuoteInput, SavedQuote, Section } from './types'
 
 type Tab = 'quote' | 'items' | 'standards'
 
@@ -54,7 +56,55 @@ export default function App() {
     [pages, excluded],
   )
 
-  const cover = useMemo(() => buildCover(doc.sections, standards), [doc.sections, standards])
+  const cover = useMemo(
+    () => buildCover(doc.sections, standards, doc.input),
+    [doc.sections, standards, doc.input],
+  )
+
+  /* ---------------- 견적 이력 ---------------- */
+
+  const library = useLibrary()
+  const [libOpen, setLibOpen] = useState(false)
+  const [savedTick, setSavedTick] = useState<string | null>(null)
+
+  const saveQuote = () => {
+    if (!doc.input.quoteNo.trim()) {
+      alert('견적번호를 입력하세요.')
+      return
+    }
+    library.save(doc, cover.total)
+    setSavedTick(new Date().toLocaleTimeString('ko-KR'))
+    setTimeout(() => setSavedTick(null), 2500)
+  }
+
+  const newQuote = () => {
+    if (!confirm('새 견적을 시작합니다. 저장하지 않은 내용은 사라집니다.')) return
+    setDoc({
+      input: { ...DEFAULT_INPUT, quoteNo: nextQuoteNo(library.list.map((q) => q.quoteNo)) },
+      sections: [],
+    })
+    lastApplied.current = ''
+  }
+
+  const openSaved = (q: SavedQuote) => {
+    setDoc(structuredClone(q.doc))
+    lastApplied.current = [
+      q.doc.input.points,
+      q.doc.input.meterCount,
+      q.doc.input.ctCount,
+      q.doc.input.moduleCount,
+      q.doc.input.gatewayCount,
+      q.doc.input.cloudYears,
+    ].join('|')
+    setLibOpen(false)
+  }
+
+  const duplicateSaved = (q: SavedQuote) => {
+    const copy = structuredClone(q.doc)
+    copy.input.quoteNo = nextQuoteNo(library.list.map((x) => x.quoteNo))
+    copy.input.date = todayISO()
+    openSaved({ ...q, doc: copy })
+  }
 
   /* ---------------- 견적 기준 자동 적용 ---------------- */
 
@@ -165,23 +215,43 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="topbar">
-        <h1>유호스트 견적 제작 프로그램</h1>
-        <span className="sub">견적 기준 기반 자동 산출 · Excel / PDF 출력</span>
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark">₩</span>
+          <div>
+            <h1>유호스트 견적 제작</h1>
+            <span className="sub">견적 기준 기반 자동 산출 · Excel / PDF</span>
+          </div>
+        </div>
+
+        <div className="doc-chip" title="작업 중인 견적">
+          <span className="no">{doc.input.quoteNo || '견적번호 없음'}</span>
+          <span className="who">{doc.input.customer || '업체명 미입력'}</span>
+        </div>
+
         <div className="spacer" />
+
+        {savedTick && <span className="saved-tick">저장됨 {savedTick}</span>}
+
         <div className="file-actions">
-          <button className="btn ghost" onClick={() => exportProject(standards, doc, `${baseName()}.json`)}>
-            기준·견적 저장
+          <button className="btn ghost" onClick={() => setLibOpen(true)}>
+            견적 이력 <span className="count">{library.list.length}</span>
+          </button>
+          <button className="btn accent" onClick={saveQuote}>
+            견적 저장
+          </button>
+          <span className="vr" />
+          <button
+            className="btn ghost"
+            onClick={() => exportProject(standards, doc, `${baseName()}.json`)}
+            title="견적 기준과 현재 견적을 JSON 파일로 내보냅니다"
+          >
+            내보내기
           </button>
           <button className="btn ghost" onClick={() => fileRef.current?.click()}>
             불러오기
           </button>
-          <button
-            className="btn ghost"
-            onClick={() => {
-              if (confirm('작성 중인 견적 내용을 비웁니다. (견적 기준은 유지)')) setDoc(DEFAULT_DOC)
-            }}
-          >
+          <button className="btn ghost" onClick={newQuote}>
             새 견적
           </button>
           <input
@@ -196,7 +266,7 @@ export default function App() {
             }}
           />
         </div>
-      </div>
+      </header>
 
       <div className="main">
         <div className="sidebar" style={{ width: sidebarW }}>
@@ -270,9 +340,25 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ fontSize: 11.5, whiteSpace: 'nowrap' }}>
-              합계 <b>{fmt(cover.total)}</b> · VAT 포함 <b>{fmt(cover.totalWithVat)}</b> · 이익률{' '}
-              <b>{fmtPct(cover.margin)}</b>
+            <div className="sum-strip">
+              {cover.discount > 0 && (
+                <span>
+                  <span className="k">할인 </span>
+                  <span className="v" style={{ color: '#ffb3a7' }}>−{fmt(cover.discount)}</span>
+                </span>
+              )}
+              <span>
+                <span className="k">합계 </span>
+                <span className="v big">{fmt(cover.total)}</span>
+              </span>
+              <span>
+                <span className="k">VAT 포함 </span>
+                <span className="v">{fmt(cover.totalWithVat)}</span>
+              </span>
+              <span>
+                <span className="k">이익률 </span>
+                <span className="v">{fmtPct(cover.margin)}</span>
+              </span>
             </div>
           </div>
 
@@ -288,6 +374,17 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {libOpen && (
+        <QuoteLibrary
+          list={library.list}
+          currentNo={doc.input.quoteNo}
+          onOpen={openSaved}
+          onDuplicate={duplicateSaved}
+          onRemove={library.remove}
+          onClose={() => setLibOpen(false)}
+        />
+      )}
 
       {busy && (
         <div

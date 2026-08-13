@@ -155,8 +155,12 @@ export interface CatalogEntry {
   cost: number
 }
 
+export type DiscountType = 'amount' | 'percent'
+
 /** 견적 1건의 입력값 */
 export interface QuoteInput {
+  /** 견적번호 (예: YH-20260812-01) */
+  quoteNo: string
   /** 수신 — 업체명 */
   customer: string
   /** 참조 */
@@ -181,6 +185,26 @@ export interface QuoteInput {
   gatewayCount: number
   /** 클라우드 이용 년수 */
   cloudYears: number
+  /** 할인 방식 */
+  discountType: DiscountType
+  /** 할인 값 (금액 또는 %) */
+  discountValue: number
+  /** 할인 표시 문구 */
+  discountLabel: string
+}
+
+/** 저장된 견적 1건 (견적 이력) */
+export interface SavedQuote {
+  id: string
+  quoteNo: string
+  customer: string
+  subject: string
+  date: string
+  /** 저장 시점의 합계 (VAT 별도) — 목록에 보여준다 */
+  total: number
+  /** 마지막 저장 시각 (ISO) */
+  savedAt: string
+  doc: QuoteDoc
 }
 
 export interface QuoteDoc {

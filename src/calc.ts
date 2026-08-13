@@ -95,6 +95,12 @@ export interface CoverSheet {
   generalAdmin: number
   safety: number
   profitFee: number
+  /** 6개 항목 소계 (할인 전) */
+  subtotal: number
+  /** 할인액 (양수) */
+  discount: number
+  /** 할인 표시 문구 */
+  discountLabel: string
   /** 절삭 전 합계 */
   rawTotal: number
   /** 절삭 후 합계 (VAT 별도) */
@@ -108,7 +114,7 @@ export interface CoverSheet {
   margin: number
 }
 
-export function buildCover(sections: Section[], std: Standards): CoverSheet {
+export function buildCover(sections: Section[], std: Standards, input?: QuoteInput): CoverSheet {
   const t = sumTotals(sections.map(sectionTotals))
   const { generalAdmin: gr, safety: sr, profit: pr, vat: vr, roundDownDigits } = std.rates
 
@@ -142,7 +148,11 @@ export function buildCover(sections: Section[], std: Standards): CoverSheet {
     { no: 6, name: `이윤{(2+3+4)*${pct(pr)}}`, unit: 'LOT', qty: 1, price: profitFee, amount: profitFee },
   ]
 
-  const rawTotal = rows.reduce((a, r) => a + r.amount, 0)
+  const subtotal = rows.reduce((a, r) => a + r.amount, 0)
+  const dv = input?.discountValue ?? 0
+  const discount =
+    dv > 0 ? round0(input?.discountType === 'percent' ? (subtotal * dv) / 100 : dv) : 0
+  const rawTotal = Math.max(0, subtotal - discount)
   const total = roundDown(rawTotal, roundDownDigits)
   const vat = round0(total * vr)
   const cost = t.costSum
@@ -156,6 +166,9 @@ export function buildCover(sections: Section[], std: Standards): CoverSheet {
     generalAdmin,
     safety,
     profitFee,
+    subtotal,
+    discount,
+    discountLabel: input?.discountLabel || '할인 (D/C)',
     rawTotal,
     total,
     vat,

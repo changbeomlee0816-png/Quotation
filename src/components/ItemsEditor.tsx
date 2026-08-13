@@ -90,6 +90,21 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
     removeItem(sid, iid)
   }
 
+  /** Ctrl+D — 현재 줄을 그대로 복제해 바로 아래에 넣는다 */
+  const duplicateRow = (sid: string, idx: number) => {
+    setPendingFocus({ sid, idx: idx + 1 })
+    onChange(
+      sections.map((s) => {
+        if (s.id !== sid) return s
+        const src = s.items[idx]
+        if (!src) return s
+        const items = [...s.items]
+        items.splice(idx + 1, 0, { ...src, id: uid('li'), auto: undefined, locked: undefined })
+        return { ...s, items }
+      }),
+    )
+  }
+
   const rowKeyDown = (sid: string, idx: number, iid: string) => (e: React.KeyboardEvent) => {
     const mod = e.ctrlKey || e.metaKey
     if (!mod) return
@@ -99,6 +114,9 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
     } else if (e.key === '-' || e.code === 'Minus' || e.code === 'NumpadSubtract') {
       e.preventDefault()
       deleteRow(sid, idx, iid)
+    } else if (e.key.toLowerCase() === 'd') {
+      e.preventDefault()
+      duplicateRow(sid, idx)
     }
   }
 
@@ -293,7 +311,8 @@ export function ItemsEditor({ sections, standards, onChange }: Props) {
                 + 단가표에서 추가
               </button>
               <span className="muted" style={{ fontSize: 11 }}>
-                입력 중 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 줄 추가 · <kbd>Ctrl</kbd>+<kbd>-</kbd> 줄 삭제
+                <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 추가 · <kbd>Ctrl</kbd>+<kbd>D</kbd> 복제 ·{' '}
+                <kbd>Ctrl</kbd>+<kbd>-</kbd> 삭제
               </span>
             </div>
 

@@ -58,7 +58,7 @@ function CoverPage({
   standards: Standards
   sections: Section[]
 }) {
-  const cover = buildCover(sections, std)
+  const cover = buildCover(sections, std, input)
   const s = std.supplier
   const BLANK_ROWS = 4
 
@@ -77,6 +77,12 @@ function CoverPage({
           <span className="en">QUOTATION</span>
         </div>
         <div className="issued">
+          {input.quoteNo && (
+            <>
+              견적번호 <b>{input.quoteNo}</b>
+              <br />
+            </>
+          )}
           견적일자 <b>{formatDateKR(input.date)}</b>
           <br />
           유효기간 <b>{input.validity}</b>
@@ -151,6 +157,27 @@ function CoverPage({
               <td></td>
             </tr>
           ))}
+          {cover.discount > 0 && (
+            <>
+              <tr className="vat">
+                <td></td>
+                <td className="c" colSpan={4}>
+                  소　　계
+                </td>
+                <td className="r">{fmt(cover.subtotal)}</td>
+              </tr>
+              <tr className="vat">
+                <td></td>
+                <td className="c" colSpan={4}>
+                  {cover.discountLabel}
+                  {input.discountType === 'percent' && ` ${input.discountValue}%`}
+                </td>
+                <td className="r" style={{ color: '#a8402c' }}>
+                  −{fmt(cover.discount)}
+                </td>
+              </tr>
+            </>
+          )}
           <tr className="sub">
             <td></td>
             <td className="c" colSpan={4}>
@@ -208,7 +235,7 @@ function DetailPage({
   input: QuoteInput
 }) {
   const withProfit = page.kind === 'profit'
-  const cover = buildCover(sections, std)
+  const cover = buildCover(sections, std, input)
   const byId = new Map(sections.map((s) => [s.id, s]))
 
   const grand = sections.reduce(

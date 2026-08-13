@@ -208,7 +208,16 @@ export function todayISO(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
+/** 견적번호 자동 채번 — YH-YYYYMMDD-NN */
+export function nextQuoteNo(existing: string[], date = todayISO()): string {
+  const base = `YH-${date.replace(/-/g, '')}`
+  let n = 1
+  while (existing.includes(`${base}-${String(n).padStart(2, '0')}`)) n++
+  return `${base}-${String(n).padStart(2, '0')}`
+}
+
 export const DEFAULT_INPUT: QuoteInput = {
+  quoteNo: nextQuoteNo([]),
   customer: '',
   attn: '',
   subject: '',
@@ -221,4 +230,7 @@ export const DEFAULT_INPUT: QuoteInput = {
   moduleCount: 0,
   gatewayCount: 0,
   cloudYears: 1,
+  discountType: 'amount',
+  discountValue: 0,
+  discountLabel: '할인 (D/C)',
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ProjectFile, QuoteDoc, Standards } from './types'
+import type { ProjectFile, QuoteDoc, SavedQuote, Standards } from './types'
 import { DEFAULT_INPUT, DEFAULT_STANDARDS } from './defaults'
 
 const KEY_STD = 'youhost.quote.standards.v1'
@@ -67,7 +67,65 @@ export async function importProject(file: File): Promise<ProjectFile> {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* 견적 이력 — 여러 건을 저장해 두고 다시 열어 쓴다                        */
+/* ------------------------------------------------------------------ */
+
+const KEY_LIB = 'youhost.quote.library.v1'
+
+export function loadLibrary(): SavedQuote[] {
+  try {
+    const raw = localStorage.getItem(KEY_LIB)
+    const list = raw ? (JSON.parse(raw) as SavedQuote[]) : []
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
+function writeLibrary(list: SavedQuote[]) {
+  localStorage.setItem(KEY_LIB, JSON.stringify(list))
+}
+
+export function useLibrary() {
+  const [list, setList] = useState<SavedQuote[]>(() => loadLibrary())
+
+  const persist = (next: SavedQuote[]) => {
+    const sorted = [...next].sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+    try {
+      writeLibrary(sorted)
+    } catch {
+      alert('저장 공간이 부족합니다. 오래된 견적을 지워 주세요.')
+      return
+    }
+    setList(sorted)
+  }
+
+  /** 같은 견적번호가 있으면 덮어쓰고, 없으면 새로 추가한다 */
+  const save = (doc: QuoteDoc, total: number) => {
+    const now = new Date().toISOString()
+    const entry: SavedQuote = {
+      id: doc.input.quoteNo || `q-${now}`,
+      quoteNo: doc.input.quoteNo,
+      customer: doc.input.customer,
+      subject: doc.input.subject,
+      date: doc.input.date,
+      total,
+      savedAt: now,
+      doc: structuredClone(doc),
+    }
+    persist([entry, ...list.filter((q) => q.id !== entry.id)])
+    return entry
+  }
+
+  const remove = (id: string) => persist(list.filter((q) => q.id !== id))
+  const clear = () => persist([])
+
+  return { list, save, remove, clear }
+}
+
 export function resetStorage() {
+  localStorage.removeItem(KEY_LIB)
   localStorage.removeItem(KEY_STD)
   localStorage.removeItem(KEY_DOC)
 }

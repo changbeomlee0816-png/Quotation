@@ -38,6 +38,15 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
         <p className="hint">업체명과 제목만 넣으면 갑지가 채워집니다.</p>
         <div className="grid c2">
           <label className="f">
+            <span className="req">견적번호</span>
+            <input
+              type="text"
+              value={input.quoteNo}
+              placeholder="YH-20260812-01"
+              onChange={(e) => set('quoteNo', e.target.value)}
+            />
+          </label>
+          <label className="f">
             <span className="req">수신 (업체명)</span>
             <input
               type="text"
@@ -46,9 +55,30 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
               onChange={(e) => set('customer', e.target.value)}
             />
           </label>
+        </div>
+        <div className="grid c2" style={{ marginTop: 10 }}>
           <label className="f">
             <span>참조</span>
             <input type="text" value={input.attn} onChange={(e) => set('attn', e.target.value)} />
+          </label>
+          <label className="f">
+            <span>할인</span>
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <select
+                value={input.discountType}
+                onChange={(e) => set('discountType', e.target.value as 'amount' | 'percent')}
+                style={{ width: 74 }}
+              >
+                <option value="amount">금액</option>
+                <option value="percent">%</option>
+              </select>
+              <input
+                type="number"
+                min={0}
+                value={input.discountValue || ''}
+                onChange={(e) => set('discountValue', num(e.target.value))}
+              />
+            </div>
           </label>
         </div>
         <div className="grid" style={{ marginTop: 10 }}>

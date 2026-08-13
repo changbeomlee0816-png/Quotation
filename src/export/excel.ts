@@ -115,7 +115,7 @@ function buildCoverSheet(
   detailTotalRow: number,
 ) {
   const ws = wb.addWorksheet('갑지')
-  const cover = buildCover(sections, std)
+  const cover = buildCover(sections, std, input)
 
   ws.pageSetup = {
     paperSize: 9,
@@ -138,6 +138,12 @@ function buildCoverSheet(
     font: { size: 22, bold: true, color: { argb: C.navy } },
     align: { horizontal: 'center', vertical: 'middle' },
     border: { l: 'medium', r: 'medium', t: 'medium', b: 'medium' },
+  })
+
+  ws.mergeCells('A4:D4')
+  set(ws, 'A4', input.quoteNo ? `견적번호 : ${input.quoteNo}` : '', {
+    font: { size: 10, bold: true, color: { argb: C.navy } },
+    align: { horizontal: 'left', vertical: 'middle' },
   })
 
   const left: [string, string][] = [
@@ -272,6 +278,23 @@ function buildCoverSheet(
       numFmt: COVER_MONEY,
       align: { vertical: 'middle' },
       border: { ...b, l: 'thin', r: 'medium' },
+    })
+  }
+
+  // 할인 (있을 때만) — 여백 행의 첫 줄에 표기
+  if (cover.discount > 0) {
+    const dr = COVER_FIRST + cover.rows.length
+    set(ws, `B${dr}`, cover.discountLabel, {
+      font: { size: 9, bold: true },
+      numFmt: '@',
+      align: { horizontal: 'left', vertical: 'middle' },
+      border: { t: 'hair', b: 'hair', l: 'thin', r: 'thin' },
+    })
+    set(ws, `G${dr}`, -Math.round(cover.discount), {
+      font: { size: 9, bold: true, color: { argb: 'FFA8402C' } },
+      numFmt: COVER_MONEY,
+      align: { vertical: 'middle' },
+      border: { t: 'hair', b: 'hair', l: 'thin', r: 'medium' },
     })
   }
 
@@ -606,7 +629,7 @@ export async function buildWorkbook(
   writeDetailTotal(profit.ws, profit.layout, sections, profit.lastCol, true)
 
   // 매출이익 시트 하단 - 이윤 (갑지 요율) 반영
-  appendProfitFeeBlock(profit.ws, profit.layout, sections, std)
+  appendProfitFeeBlock(profit.ws, profit.layout, sections, std, input)
 
   return wb.xlsx.writeBuffer() as Promise<ArrayBuffer>
 }
@@ -620,8 +643,9 @@ function appendProfitFeeBlock(
   layout: DetailLayout,
   sections: Section[],
   std: Standards,
+  input: QuoteInput,
 ) {
-  const cover = buildCover(sections, std)
+  const cover = buildCover(sections, std, input)
   const start = layout.totalRow + 2
 
   const head = start
@@ -724,9 +748,10 @@ function appendProfitFeeBlock(
     })
 
   put('J', `J${dt}+${feeRows.map((r) => `J${r}`).join('+')}`, cover.expense + cover.generalAdmin + cover.safety + cover.profitFee)
+  const discountTerm = cover.discount > 0 ? `-${Math.round(cover.discount)}` : ''
   put(
     'K',
-    `ROUNDDOWN(K${dt}+${feeRows.map((r) => `K${r}`).join('+')},${std.rates.roundDownDigits})`,
+    `ROUNDDOWN(K${dt}+${feeRows.map((r) => `K${r}`).join('+')}${discountTerm},${std.rates.roundDownDigits})`,
     cover.total,
   )
   put('L', `L${dt}`, cover.cost)
