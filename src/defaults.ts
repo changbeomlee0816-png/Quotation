@@ -146,6 +146,8 @@ export const DEFAULT_STANDARDS: Standards = {
   },
   remarks: ['1) VAT 별도, 만단위 절삭', '2) 클라우드 이용료는 1년 단위 계산'],
   catalog: [],
+  // 거래처는 각자 입력해서 쓴다 (소스에 넣지 않는다 — 저장소가 공개다)
+  customers: [],
 }
 
 /** 기준 견적서(스마트분전반 ESG)에서 추출한 단가 카탈로그 */

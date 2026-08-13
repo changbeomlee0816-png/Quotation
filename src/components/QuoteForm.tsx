@@ -7,11 +7,22 @@ interface Props {
   standards: Standards
   onChange: (next: QuoteInput) => void
   onApply: () => void
+  /** 지금 입력한 업체명을 거래처 목록에 저장 */
+  onSaveCustomer: () => void
 }
 
-export function QuoteForm({ input, standards, onChange, onApply }: Props) {
+export function QuoteForm({ input, standards, onChange, onApply, onSaveCustomer }: Props) {
   const set = <K extends keyof QuoteInput>(k: K, v: QuoteInput[K]) => onChange({ ...input, [k]: v })
   const num = (v: string) => (v === '' ? 0 : Math.max(0, Number(v) || 0))
+
+  const customers = standards.customers ?? []
+
+  /** 거래처 목록에 있는 이름을 고르면 참조(담당자)까지 함께 채운다 */
+  const pickCustomer = (name: string) => {
+    const hit = customers.find((c) => c.name === name)
+    if (hit) onChange({ ...input, customer: name, attn: hit.attn || input.attn })
+    else set('customer', name)
+  }
 
   const tier = findCloudTier(standards.cloud.tiers, input.points)
   const { install, network, networkMeterPlusOne } = standards.construction
@@ -48,12 +59,30 @@ export function QuoteForm({ input, standards, onChange, onApply }: Props) {
           </label>
           <label className="f">
             <span className="req">수신 (업체명)</span>
-            <input
-              type="text"
-              value={input.customer}
-              placeholder="예: 나인랩스"
-              onChange={(e) => set('customer', e.target.value)}
-            />
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <input
+                type="text"
+                list="customer-list"
+                value={input.customer}
+                placeholder="예: 나인랩스"
+                onChange={(e) => pickCustomer(e.target.value)}
+              />
+              <button
+                className="btn sm"
+                onClick={onSaveCustomer}
+                disabled={!input.customer.trim()}
+                title="이 업체를 거래처 목록에 저장합니다"
+              >
+                거래처 저장
+              </button>
+            </div>
+            <datalist id="customer-list">
+              {customers.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.attn}
+                </option>
+              ))}
+            </datalist>
           </label>
         </div>
         <div className="grid c2" style={{ marginTop: 10 }}>

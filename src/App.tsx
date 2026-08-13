@@ -144,6 +144,19 @@ export default function App() {
   }
 
   const setInput = (input: QuoteInput) => setDoc((d) => ({ ...d, input }))
+
+  /** 지금 견적의 업체명·참조를 거래처 목록에 넣거나 갱신한다 */
+  const saveCustomer = () => {
+    const name = doc.input.customer.trim()
+    if (!name) return
+    const list = standards.customers ?? []
+    const hit = list.find((c) => c.name === name)
+    const next = hit
+      ? list.map((c) => (c.id === hit.id ? { ...c, attn: doc.input.attn || c.attn } : c))
+      : [{ id: `cust-${Date.now()}`, name, attn: doc.input.attn, tel: '', email: '', memo: '' }, ...list]
+    setStandards({ ...standards, customers: next })
+    alert(hit ? `거래처 "${name}" 정보를 갱신했습니다.` : `거래처 "${name}" 를 저장했습니다.`)
+  }
   const setSections = (sections: Section[]) => setDoc((d) => ({ ...d, sections }))
   const reapply = () =>
     setDoc((d) => ({ ...d, sections: applyStandards(d.sections, d.input, standards) }))
@@ -283,7 +296,13 @@ export default function App() {
           </div>
           <div className="tab-body">
             {tab === 'quote' && (
-              <QuoteForm input={doc.input} standards={standards} onChange={setInput} onApply={reapply} />
+              <QuoteForm
+                input={doc.input}
+                standards={standards}
+                onChange={setInput}
+                onApply={reapply}
+                onSaveCustomer={saveCustomer}
+              />
             )}
             {tab === 'items' && (
               <ItemsEditor sections={doc.sections} standards={standards} onChange={setSections} />

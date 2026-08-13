@@ -141,6 +141,20 @@ export interface Standards {
   remarks: string[]
   /** 자재/노무 단가 카탈로그 — 항목 추가 시 빠른 입력용 */
   catalog: CatalogEntry[]
+  /** 거래처 목록 — 견적 정보의 업체명 자동완성에 쓴다 */
+  customers: Customer[]
+}
+
+/** 거래처 */
+export interface Customer {
+  id: string
+  /** 업체명 (수신) */
+  name: string
+  /** 참조 — 담당자 */
+  attn: string
+  tel: string
+  email: string
+  memo: string
 }
 
 export interface CatalogEntry {

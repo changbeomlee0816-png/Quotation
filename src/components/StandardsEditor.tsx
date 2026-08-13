@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react'
+import { CatalogEditor } from './CatalogEditor'
+import { CustomerEditor } from './CustomerEditor'
 import type { CloudTier, CostKind, Standards, UnitRule } from '../types'
 import { COST_KIND_LABEL } from '../types'
 import { DEFAULT_STANDARDS } from '../defaults'
@@ -559,7 +561,7 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
 
       {/* 6) 특기사항 */}
       <div className="card">
-        <h3>6) 특기사항</h3>
+        <h3>8) 특기사항</h3>
         <textarea
           rows={4}
           value={std.remarks.join('\n')}
@@ -567,6 +569,13 @@ export function StandardsEditor({ standards: std, onChange }: Props) {
         />
         <p className="hint" style={{ marginTop: 6, marginBottom: 0 }}>한 줄에 한 항목씩 입력합니다.</p>
       </div>
+
+      <CustomerEditor
+        customers={std.customers ?? []}
+        onChange={(customers) => patch({ customers })}
+      />
+
+      <CatalogEditor catalog={std.catalog} onChange={(catalog) => patch({ catalog })} />
 
       <div className="card">
         <h3>초기화</h3>
